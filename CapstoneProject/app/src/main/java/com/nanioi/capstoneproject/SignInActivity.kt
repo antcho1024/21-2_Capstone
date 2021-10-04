@@ -19,7 +19,7 @@ class SignInActivity : AppCompatActivity() {
 //        setContentView(R.layout.activity_sign_in)
         setContentView(binding.root)
 
-
+        //
         binding.signInButton.setOnClickListener {
             //TODO 아래 주석단거 코드 추가해주세요
 
