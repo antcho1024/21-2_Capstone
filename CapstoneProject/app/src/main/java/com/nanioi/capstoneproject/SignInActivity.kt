@@ -7,10 +7,20 @@ import android.text.Spanned
 import android.text.method.LinkMovementMethod
 import android.text.style.ClickableSpan
 import android.view.View
+import android.widget.EditText
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import com.nanioi.capstoneproject.databinding.ActivitySignInBinding
+//import android.widget.EditText
 
 class SignInActivity : AppCompatActivity() {
+
+    private lateinit var auth: FirebaseAuth
+//    private lateinit var callbackManager:CallbackManager
 
     private val binding by lazy { ActivitySignInBinding.inflate(layoutInflater) }
 
@@ -19,13 +29,24 @@ class SignInActivity : AppCompatActivity() {
 //        setContentView(R.layout.activity_sign_in)
         setContentView(binding.root)
 
+        auth = Firebase.auth
+        
         //
         binding.signInButton.setOnClickListener {
             //TODO 아래 주석단거 코드 추가해주세요
 
-            //로그인 성공하면 MainActivity로
+            val email = getInputEmail()
+            val password = getInputPassword()
 
-            //실패하면 에러처리
+            //로그인 성공하면 MainActivity로
+            auth.signInWithEmailAndPassword(email,password)
+                .addOnCompleteListener(this) { task->
+                    if(task.isSuccessful){
+                        handleSuccessLogin()
+                    }else{   //실패하면 에러처리
+                        Toast.makeText(this,"로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요.",Toast.LENGTH_SHORT).show()
+                    }
+                }
         }
 
         //by 나연. 회원가입 클릭 시 회원가입 Activity로 이동 (2021.09.27)
@@ -38,9 +59,78 @@ class SignInActivity : AppCompatActivity() {
         signUpText.setSpan(clickSpan, 13, 17, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         binding.signUpTextView.movementMethod = LinkMovementMethod.getInstance()
 
+        auth= Firebase.auth
+        callbackManager= CallbackManager.Factory.create()
+
+        val emailEditText = findViewById<EditText>(R.id.emailEditText)
+        val passwordEditText  = findViewById<EditText>(R.id.passwordEditText)
+
+        initLoginButton()
+        initSignUpButton()
+        initEmailAndPasswordEditText()
+        initFacebookLoginButton()
 
    }
 
+    private fun initLoginButton() {
+        val loginButton = findViewById<Button>(R.id.loginButton)
+        loginButton.setOnClickListener {
+            val email = getInputEmail()
+            val password = getInputPassword()
+
+            auth.signInWithEmailAndPassword(email,password)
+                    .addOnCompleteListener(this) { task->
+                        if(task.isSuccessful){
+                            handleSuccessLogin()
+                        }else{
+                            Toast.makeText(this,"로그인에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요.",Toast.LENGTH_SHORT).show()
+                        }
+
+                    }
+        }
+    }
+    private fun initEmailAndPasswordEditText() {
+        val emailEditText = findViewById<EditText>(R.id.emailEditText)
+        val passwordEditText = findViewById<EditText>(R.id.passwordEditText)
+        val loginButton = findViewById<Button>(R.id.loginButton)
+        val signUpButton = findViewById<Button>(R.id.signUpButton)
+
+        emailEditText.addTextChangedListener {
+            val enable = emailEditText.text.isNotEmpty() && passwordEditText.text.isNotEmpty()
+            loginButton.isEnabled=enable
+            signUpButton.isEnabled=enable
+        }
+        passwordEditText.addTextChangedListener {
+            val enable = emailEditText.text.isNotEmpty() && passwordEditText.text.isNotEmpty()
+            loginButton.isEnabled=enable
+            signUpButton.isEnabled=enable
+        }
+    }
+
+    private fun getInputEmail():String{
+        return findViewById<EditText>(R.id.emailEditText).text.toString()
+    }
+    private fun getInputPassword():String{
+        return findViewById<EditText>(R.id.passwordEditText).text.toString()
+    }
+
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//        callbackManager.onActivityResult(requestCode,resultCode,data)
+//    }
+    private fun handleSuccessLogin(){
+        if(auth.currentUser == null){
+            Toast.makeText(this,"로그인에 실패했습니다.",Toast.LENGTH_SHORT).show()
+            return
+        }
+        val userId = auth.currentUser?.uid.orEmpty() //userId 가져오기
+        val currentUserDB = Firebase.database.reference.child(USERS).child(userId)
+        val user = mutableMapOf<String,Any>()
+        user[USER_ID]=userId
+        currentUserDB.updateChildren(user)
+
+        finish()
+    }
 }
 //
 //import android.content.Intent
